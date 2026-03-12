@@ -6,6 +6,7 @@ __pycache__/
 .Python
 .streamlit/
 bccd_detection_result.jpg
+checkpoints/*.pth
 
 # Local dataset and experiment artifacts
 BCCD_Dataset/

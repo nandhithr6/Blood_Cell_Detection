@@ -125,7 +125,7 @@ This project is prepared to keep the repository small enough for GitHub:
 
 - The local virtual environment is ignored
 - The raw BCCD dataset is ignored
-- The trained checkpoint in `checkpoints/bccd_fasterrcnn.pth` is kept so the deployed app can run predictions
+- Large trained checkpoints are ignored because GitHub rejects files larger than 100 MB
 
 Initialize and push:
 
@@ -160,7 +160,7 @@ Notes:
 
 - First build can take a few minutes because PyTorch is large
 - The app does not need the training dataset on Render
-- The bundled checkpoint avoids downloading model weights at runtime
+- If `checkpoints/bccd_fasterrcnn.pth` is not present on Render, the app still starts but uses the untrained replacement detection head
 
 ## Conclusion
 
