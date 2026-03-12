@@ -40,23 +40,10 @@ def main():
     st.write(
         "Upload a microscopy image and visualize predicted blood cell bounding boxes for RBC, WBC, and Platelets."
     )
-    st.info(
-        "For meaningful class predictions, load fine-tuned BCCD weights. Without a checkpoint, the project still "
-        "demonstrates the full inference pipeline but the replaced classifier head is not trained."
-    )
-    st.caption("If checkpoints/bccd_fasterrcnn.pth exists, it is used automatically.")
-    st.caption("For cloud deployment, you can also provide a checkpoint download URL through Streamlit secrets.")
 
     checkpoint_path = st.text_input("Optional checkpoint path", value=default_checkpoint_path or "")
     threshold = st.slider("Confidence threshold", min_value=0.1, max_value=0.95, value=0.6, step=0.05)
     uploaded_file = st.file_uploader("Upload a blood cell image", type=["png", "jpg", "jpeg"])
-
-    if checkpoint_url:
-        st.success("A hosted checkpoint URL is configured for this app.")
-    elif default_checkpoint_path:
-        st.success(f"Using local checkpoint: {default_checkpoint_path}")
-    else:
-        st.warning("No fine-tuned checkpoint is configured. Predictions will not be reliable.")
 
     if uploaded_file is None:
         st.stop()
