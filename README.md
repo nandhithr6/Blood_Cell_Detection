@@ -119,6 +119,30 @@ python detect.py --image_name BloodImage_00000.jpg
 python -m streamlit run app.py
 ```
 
+## Use The Fine-Tuned Checkpoint In Streamlit Cloud
+
+GitHub cannot store the checkpoint because it is larger than 100 MB, so the deployed app should download it from a hosted file URL.
+
+Recommended approach:
+
+1. Upload `bccd_fasterrcnn.pth` to a direct-download host such as Hugging Face, Google Drive direct download, Dropbox direct download, or a GitHub Release asset
+2. In Streamlit Community Cloud, open your app settings
+3. Add this secret:
+
+```toml
+checkpoint_url = "https://your-direct-download-link/bccd_fasterrcnn.pth"
+```
+
+4. Redeploy the app
+
+At startup, the app will download the checkpoint to `checkpoints/bccd_fasterrcnn.pth` and use it automatically.
+
+Important:
+
+- The URL must be a direct file download URL, not a share page
+- The first startup will take longer because the checkpoint has to be downloaded
+- Without this checkpoint, the app loads but blood-cell predictions are not trustworthy
+
 ## Push to GitHub Quickly
 
 This project is prepared to keep the repository small enough for GitHub:

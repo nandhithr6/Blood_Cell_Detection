@@ -1,4 +1,5 @@
 import os
+import urllib.request
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import cv2
@@ -14,6 +15,7 @@ from dataset import ID_TO_CLASS
 
 
 ImageInput = Union[str, Image.Image]
+DEFAULT_CHECKPOINT_PATH = "checkpoints/bccd_fasterrcnn.pth"
 
 
 def get_device() -> torch.device:
@@ -21,16 +23,47 @@ def get_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def get_checkpoint_url() -> Optional[str]:
+    """Read a checkpoint download URL from the environment when available."""
+    return os.getenv("BCCD_CHECKPOINT_URL") or os.getenv("CHECKPOINT_URL")
+
+
+def download_checkpoint(checkpoint_url: str, destination_path: str = DEFAULT_CHECKPOINT_PATH) -> str:
+    """Download a checkpoint file only when it is not already present locally."""
+    if os.path.exists(destination_path):
+        return destination_path
+
+    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+    urllib.request.urlretrieve(checkpoint_url, destination_path)
+    return destination_path
+
+
+def ensure_checkpoint_available(
+    checkpoint_path: Optional[str] = None,
+    checkpoint_url: Optional[str] = None,
+) -> Optional[str]:
+    """Return a usable checkpoint path, downloading it first when configured."""
+    resolved_path = resolve_checkpoint_path(checkpoint_path)
+    if resolved_path and os.path.exists(resolved_path):
+        return resolved_path
+
+    checkpoint_url = checkpoint_url or get_checkpoint_url()
+    if checkpoint_url:
+        destination_path = checkpoint_path or DEFAULT_CHECKPOINT_PATH
+        return download_checkpoint(checkpoint_url, destination_path=destination_path)
+
+    return resolved_path
+
+
 def resolve_checkpoint_path(checkpoint_path: Optional[str] = None) -> Optional[str]:
     """Use the provided checkpoint, or a default checkpoint if one exists."""
     if checkpoint_path:
         return checkpoint_path
 
-    default_checkpoint = "checkpoints/bccd_fasterrcnn.pth"
     if torch.jit.is_scripting():
         return checkpoint_path
-    if os.path.exists(default_checkpoint):
-        return default_checkpoint
+    if os.path.exists(DEFAULT_CHECKPOINT_PATH):
+        return DEFAULT_CHECKPOINT_PATH
     return None
 
 

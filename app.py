@@ -4,6 +4,7 @@ import streamlit as st
 from dataset import ID_TO_CLASS
 from utils import (
     draw_boxes,
+    ensure_checkpoint_available,
     get_device,
     load_detection_model,
     preprocess_image,
@@ -16,14 +17,24 @@ st.set_page_config(page_title="Blood Cell Detection", layout="wide")
 
 
 @st.cache_resource
-def get_model(checkpoint_path: str):
+def get_model(checkpoint_path: str, checkpoint_url: str):
     device = get_device()
-    model = load_detection_model(checkpoint_path=checkpoint_path or None, device=device)
+    resolved_checkpoint_path = ensure_checkpoint_available(
+        checkpoint_path=checkpoint_path or None,
+        checkpoint_url=checkpoint_url or None,
+    )
+    model = load_detection_model(checkpoint_path=resolved_checkpoint_path or None, device=device)
     return model, device
+
+
+def get_secret_checkpoint_url() -> str:
+    """Read an optional checkpoint URL from Streamlit secrets."""
+    return str(st.secrets.get("checkpoint_url", ""))
 
 
 def main():
     default_checkpoint_path = resolve_checkpoint_path()
+    checkpoint_url = get_secret_checkpoint_url()
 
     st.title("Blood Cell Detection with Faster R-CNN")
     st.write(
@@ -34,15 +45,27 @@ def main():
         "demonstrates the full inference pipeline but the replaced classifier head is not trained."
     )
     st.caption("If checkpoints/bccd_fasterrcnn.pth exists, it is used automatically.")
+    st.caption("For cloud deployment, you can also provide a checkpoint download URL through Streamlit secrets.")
 
     checkpoint_path = st.text_input("Optional checkpoint path", value=default_checkpoint_path or "")
     threshold = st.slider("Confidence threshold", min_value=0.1, max_value=0.95, value=0.6, step=0.05)
     uploaded_file = st.file_uploader("Upload a blood cell image", type=["png", "jpg", "jpeg"])
 
+    if checkpoint_url:
+        st.success("A hosted checkpoint URL is configured for this app.")
+    elif default_checkpoint_path:
+        st.success(f"Using local checkpoint: {default_checkpoint_path}")
+    else:
+        st.warning("No fine-tuned checkpoint is configured. Predictions will not be reliable.")
+
     if uploaded_file is None:
         st.stop()
 
-    model, device = get_model(checkpoint_path)
+    try:
+        model, device = get_model(checkpoint_path, checkpoint_url)
+    except Exception as error:
+        st.error(f"Failed to load the detection model: {error}")
+        st.stop()
 
     # Resize the uploaded image and convert it to a tensor for Faster R-CNN.
     resized_image, image_tensor = preprocess_image(uploaded_file, resize_to=(512, 512))
