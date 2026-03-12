@@ -125,7 +125,7 @@ GitHub cannot store the checkpoint because it is larger than 100 MB, so the depl
 
 Recommended approach:
 
-1. Upload `bccd_fasterrcnn.pth` to a direct-download host such as Hugging Face, Google Drive direct download, Dropbox direct download, or a GitHub Release asset
+1. Upload `bccd_fasterrcnn.pth` to a host such as Hugging Face, Google Drive, Dropbox, or a GitHub Release asset
 2. In Streamlit Community Cloud, open your app settings
 3. Add this secret:
 
@@ -139,7 +139,8 @@ At startup, the app will download the checkpoint to `checkpoints/bccd_fasterrcnn
 
 Important:
 
-- The URL must be a direct file download URL, not a share page
+- Google Drive share links are supported by the app and converted during download
+- Other hosts should expose a direct file download URL
 - The first startup will take longer because the checkpoint has to be downloaded
 - Without this checkpoint, the app loads but blood-cell predictions are not trustworthy
 

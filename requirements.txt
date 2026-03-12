@@ -6,3 +6,4 @@ streamlit==1.55.0
 pillow==12.1.1
 numpy==2.2.6
 lxml==6.0.2
+gdown==5.2.0

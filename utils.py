@@ -3,6 +3,7 @@ import urllib.request
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import cv2
+import gdown
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -28,13 +29,42 @@ def get_checkpoint_url() -> Optional[str]:
     return os.getenv("BCCD_CHECKPOINT_URL") or os.getenv("CHECKPOINT_URL")
 
 
+def is_valid_checkpoint_file(file_path: str) -> bool:
+    """Reject obvious HTML error pages that were downloaded instead of model weights."""
+    if not os.path.exists(file_path):
+        return False
+
+    if os.path.getsize(file_path) < 1024:
+        return False
+
+    with open(file_path, "rb") as checkpoint_file:
+        prefix = checkpoint_file.read(64).lstrip()
+
+    html_prefixes = (b"<", b"<!DOCTYPE", b"<html")
+    return not any(prefix.startswith(html_prefix) for html_prefix in html_prefixes)
+
+
 def download_checkpoint(checkpoint_url: str, destination_path: str = DEFAULT_CHECKPOINT_PATH) -> str:
     """Download a checkpoint file only when it is not already present locally."""
-    if os.path.exists(destination_path):
+    if is_valid_checkpoint_file(destination_path):
         return destination_path
 
+    if os.path.exists(destination_path):
+        os.remove(destination_path)
+
     os.makedirs(os.path.dirname(destination_path), exist_ok=True)
-    urllib.request.urlretrieve(checkpoint_url, destination_path)
+
+    if "drive.google.com" in checkpoint_url:
+        gdown.download(url=checkpoint_url, output=destination_path, quiet=False, fuzzy=True)
+    else:
+        urllib.request.urlretrieve(checkpoint_url, destination_path)
+
+    if not is_valid_checkpoint_file(destination_path):
+        raise ValueError(
+            "The downloaded checkpoint is not a valid model file. The hosted URL may be returning an HTML page "
+            "instead of the .pth file."
+        )
+
     return destination_path
 
 
@@ -44,8 +74,11 @@ def ensure_checkpoint_available(
 ) -> Optional[str]:
     """Return a usable checkpoint path, downloading it first when configured."""
     resolved_path = resolve_checkpoint_path(checkpoint_path)
-    if resolved_path and os.path.exists(resolved_path):
+    if resolved_path and is_valid_checkpoint_file(resolved_path):
         return resolved_path
+
+    if resolved_path and os.path.exists(resolved_path):
+        os.remove(resolved_path)
 
     checkpoint_url = checkpoint_url or get_checkpoint_url()
     if checkpoint_url:
@@ -89,7 +122,7 @@ def load_detection_model(
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
     if checkpoint_path:
-        state_dict = torch.load(checkpoint_path, map_location=device)
+        state_dict = torch.load(checkpoint_path, map_location=device, weights_only=False)
         model.load_state_dict(state_dict)
         if verbose:
             print(f"Loaded fine-tuned checkpoint: {checkpoint_path}")
