@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.streamlit/
+bccd_detection_result.jpg
+
+# Local dataset and experiment artifacts
+BCCD_Dataset/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
